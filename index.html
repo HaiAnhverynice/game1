@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Top-Down Perspective Game</title>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        background-color: rgb(45, 24, 46);
+    }
+    @font-face {
+        font-family: 'lemonmilk';
+        src: url(/font/LEMONMILK-Light.otf);
+    }
+    #game-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    #map {
+        position: absolute;
+        width: 2000px;
+        height: 2000px;
+        background-color: rgb(86, 67, 87);
+    }
+
+    .mainbox {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background-color: #712780;
+        border-radius: 16px;
+        
+    }
+
+    .eyebox {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background-color: #d791ff;
+        border-radius: 16px;
+        
+    }
+
+    .food {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: #b96eff; /* Red color for food */
+        border-radius: 5px;
+    }
+    .center {
+        display: flex;
+        justify-content: center;
+    }
+    #score {
+        position: absolute;
+        font-size: 100px;
+        font-family: 'lemonmilk';
+        color: rgb(238, 180, 255);
+    }
+</style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="map">
+            <div class="mainbox" id="mainbox"></div>
+            <div class="eyebox" id="eyebox"></div>
+        </div>
+        <div class="center">
+            <div id="score">0</div>
+        </div>
+        
+    </div>
+
+<script>
+    const gameContainer = document.getElementById('game-container');
+    const map = document.getElementById('map');
+    const mainbox = document.getElementById('mainbox');
+    const eyebox = document.getElementById('eyebox');
+    const scoreElement = document.getElementById('score');
+    const moveDistance = 30;
+    const foodSize = 20;
+
+
+    // Initialize the mainbox and eyebox positions
+    let mainboxX = map.clientWidth / 2 - mainbox.clientWidth / 2;
+    let mainboxY = map.clientHeight / 2 - mainbox.clientHeight / 2;
+    let eyeboxX = mainboxX;
+    let eyeboxY = mainboxY;
+    const eyeboxSize = eyebox.clientWidth;
+
+    let velocityX = 0;
+    let velocityY = 0;
+    const speed = 5; // Speed in pixels per frame
+
+    let score = 0;
+    let foods = [];
+
+    function updatePositions() {
+        // Update mainbox position
+        if (velocityX < 0 && mainboxX > 0 || velocityX > 0 && mainboxX < map.clientWidth - mainbox.clientWidth) {
+            mainboxX += velocityX;
+        }
+        if (velocityY < 0 && mainboxY > 0 || velocityY > 0 && mainboxY < map.clientHeight - mainbox.clientHeight) {
+            mainboxY += velocityY;
+        }
+
+// Calculate eyebox positions based on mainbox and eyebox sizes
+if (moveLeft) {
+    eyeboxX = mainboxX - (eyebox.clientWidth / 2) + ((mainbox.clientWidth - eyebox.clientWidth) / 2);
+} else if (moveRight) {
+    eyeboxX = mainboxX + (mainbox.clientWidth - eyebox.clientWidth / 2) - ((mainbox.clientWidth - eyebox.clientWidth) / 2);
+} else {
+    eyeboxX = mainboxX + (mainbox.clientWidth - eyebox.clientWidth) / 2;
+}
+
+if (moveUp) {
+    eyeboxY = mainboxY - (eyebox.clientHeight / 2) + ((mainbox.clientHeight - eyebox.clientHeight) / 2);
+} else if (moveDown) {
+    eyeboxY = mainboxY + (mainbox.clientHeight - eyebox.clientHeight / 2) - ((mainbox.clientHeight - eyebox.clientHeight) / 2);
+} else {
+    eyeboxY = mainboxY + (mainbox.clientHeight - eyebox.clientHeight) / 2;
+}
+
+
+
+        // Check collision with food
+        checkFoodCollision();
+
+        // Update DOM elements
+        mainbox.style.transform = `translate(${mainboxX}px, ${mainboxY}px)`;
+        eyebox.style.transform = `translate(${eyeboxX}px, ${eyeboxY}px)`;
+        map.style.transform = `translate(${-mainboxX + gameContainer.clientWidth / 2 - mainbox.clientWidth / 2}px, ${-mainboxY + gameContainer.clientHeight / 2 - mainbox.clientHeight / 2}px)`;
+    }
+
+    const numFoods = 10; // Number of food items
+
+function createFood() {
+    const food = document.createElement('div');
+    food.className = 'food';
+    food.style.left = Math.floor(Math.random() * (map.clientWidth - foodSize)) + 'px';
+    food.style.top = Math.floor(Math.random() * (map.clientHeight - foodSize)) + 'px';
+    map.appendChild(food);
+    foods.push(food);
+}
+
+function checkFoodCollision() {
+    foods.forEach((food, index) => {
+        if (isColliding(mainbox, food)) {
+            map.removeChild(food);
+            foods.splice(index, 1);
+            score++;
+            scoreElement.textContent = `${score}`;
+            const mainboxwidth = mainbox.clientWidth;
+            const mainboxheight = mainbox.clientHeight;
+            const newmainboxwidth = mainboxwidth + 1 + 'px';
+            const newmainboxheight = mainboxheight + 1 + 'px';
+            document.getElementById('mainbox').style.width = newmainboxwidth;
+            document.getElementById('mainbox').style.height = newmainboxheight;
+            const eyeboxwidth = eyebox.clientWidth;
+            const eyeboxheight = eyebox.clientHeight;
+            const neweyeboxwidth = eyeboxwidth + 0.4 + 'px';
+            const neweyeboxheight = eyeboxheight + 0.4 + 'px';
+            document.getElementById('eyebox').style.width = neweyeboxwidth;
+            document.getElementById('eyebox').style.height = neweyeboxheight;
+
+            createFood(); // Generate a new food item to replace the one consumed
+            return; // Exit function after one food item is consumed
+        }
+    });
+  
+    // Check if there are less than 10 food items and create more if needed
+    while (foods.length < numFoods) {
+        createFood();
+    }
+}
+
+// Function to initialize 10 food items
+function initializeFoods() {
+    for (let i = 0; i < numFoods; i++) {
+        createFood();
+    }
+}
+
+// Call initializeFoods to set up the initial food items
+initializeFoods();
+
+
+    function isColliding(element1, element2) {
+        const rect1 = element1.getBoundingClientRect();
+        const rect2 = element2.getBoundingClientRect();
+        return !(rect1.right < rect2.left || 
+                 rect1.left > rect2.right || 
+                 rect1.bottom < rect2.top || 
+                 rect1.top > rect2.bottom);
+    }
+
+    let moveLeft = false;
+    let moveRight = false;
+    let moveUp = false;
+    let moveDown = false;
+
+    function handleKeyDown(event) {
+        if (event.key === 'ArrowLeft') {
+            velocityX = -speed;
+            moveLeft = true;
+        } else if (event.key === 'ArrowRight') {
+            velocityX = speed;
+            moveRight = true;
+        } else if (event.key === 'ArrowUp') {
+            velocityY = -speed;
+            moveUp = true;
+        } else if (event.key === 'ArrowDown') {
+            velocityY = speed;
+            moveDown = true;
+        }
+        updatePositions();
+    }
+
+    function handleKeyUp(event) {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            velocityX = 0;
+            moveLeft = false;
+            moveRight = false;
+        } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            velocityY = 0;
+            moveUp = false;
+            moveDown = false;
+        }
+        updatePositions();
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    // Initial setup
+    createFood(); // Create initial food
+    updatePositions(); // Update positions initially
+
+    function gameLoop() {
+        updatePositions();
+        requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop(); // Start game loop
+</script>
+
+</body>
+</html>
